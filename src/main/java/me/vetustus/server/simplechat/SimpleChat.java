@@ -24,7 +24,7 @@ import static me.vetustus.server.simplechat.ChatColor.translateChatColors;
 
 public class SimpleChat implements ModInitializer {
     private ChatConfig config;
-    private static final Logger LOGGER = LogManager.getLogger();
+    public static final Logger LOGGER = LogManager.getLogger();
 
     @Override
     public void onInitialize() {
@@ -49,17 +49,35 @@ public class SimpleChat implements ModInitializer {
             chatMessage.setCancelled(true);
 
             boolean isGlobalMessage = false;
-            String chatFormat = config.getLocalChatFormat();
-            if (config.isGlobalChatEnabled()) {
-                if (message.startsWith("!")) {
-                    isGlobalMessage = true;
-                    chatFormat = config.getGlobalChatFormat();
-                    message = message.substring(1);
-                }
+            String chatFormat = "&f%name% &7> &f%message%";;
+            if (message.startsWith("!!!")) {
+                isGlobalMessage = true;
+                chatFormat = config.getGlobalChatFormat();
+                message = message.substring(3);
+            }
+            else if (message.startsWith("+")) {
+                isGlobalMessage = true;
+                chatFormat = "&f[&aOOC&f] %player% &7> &f%message%";
+                message = message.substring(1);
+            }
+            else if (message.startsWith("$")) {
+                isGlobalMessage = false;
+                chatFormat = "&f[&aLOOC&f] %player% &7> &f%message%";
+                message = message.substring(1);
+            }
+            else if (message.startsWith("*")) {
+                isGlobalMessage = false;
+                chatFormat = "&f%name% кричит: &f%message%";
+                message = message.substring(1);
+            } else if (message.startsWith("==")) {
+                isGlobalMessage = false;
+                chatFormat = "&f%name% громко кричит: &f%message%";
+                message = message.substring(2);
             }
             chatFormat = translateChatColors('&', chatFormat);
             String stringMessage = chatFormat
                     .replaceAll("%player%", player.getName().asString())
+                    .replaceAll("%name%", RPAddon.GetPlayername(player))
                     .replaceAll("%message%", message);
             if (config.isChatColorsEnabled())
                 stringMessage = translateChatColors('&', stringMessage);
@@ -69,16 +87,12 @@ public class SimpleChat implements ModInitializer {
             List<ServerPlayerEntity> players = Objects.requireNonNull(player.getServer(), "The server cannot be null.")
                     .getPlayerManager().getPlayerList();
             for (ServerPlayerEntity p : players) {
-                if (config.isGlobalChatEnabled()) {
-                    if (isGlobalMessage) {
-                        p.sendMessage(resultMessage, false);
-                    } else {
-                        if (p.squaredDistanceTo(player) <= config.getChatRange()) {
-                            p.sendMessage(resultMessage, false);
-                        }
-                    }
-                } else {
+                if (isGlobalMessage) {
                     p.sendMessage(resultMessage, false);
+                } else {
+                    if (p.squaredDistanceTo(player) <= config.getChatRange()) {
+                        p.sendMessage(resultMessage, false);
+                    }
                 }
             }
             LOGGER.info(stringMessage);
@@ -101,6 +115,8 @@ public class SimpleChat implements ModInitializer {
                     }
                     return 1;
                 })));
+
+        RPAddon.Register();
     }
 
     private void loadConfig() throws IOException {
